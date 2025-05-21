@@ -6,9 +6,10 @@ use App\Repository\ProfessorRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: ProfessorRepository::class)]
-class Professor
+class Professor implements PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -36,6 +37,11 @@ class Professor
     public function __construct()
     {
         $this->turmas = new ArrayCollection();
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->senhaHash;
     }
 
     public function getId(): ?int
@@ -77,11 +83,6 @@ class Professor
         $this->email = $email;
 
         return $this;
-    }
-
-    public function getSenhaHash(): ?string
-    {
-        return $this->senhaHash;
     }
 
     public function setSenhaHash(string $senhaHash): static
