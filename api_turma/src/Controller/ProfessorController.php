@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[Route('/professor')]
 final class ProfessorController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em) {}

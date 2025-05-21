@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Administrador;
 use App\Entity\Aluno;
 use App\Entity\Professor;
 use App\Entity\Turma;
@@ -15,27 +16,28 @@ use Symfony\Component\HttpFoundation\Response;
 #[Route('/admin')]
 final class AdminController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em,
-    private UserPasswordHasherInterface $passwordHasher
-    ){}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private UserPasswordHasherInterface $passwordHasher
+    ) {}
 
     #[Route('/professor', methods: ['POST'])]
     public function criarProfessor(Request $request): Response
     {
-       $data = json_decode($request->getContent(),true);
-       
-       $prof = new Professor();
-       $prof->setNome($data['nome']);
-       $prof->setCpf($data['cpf']);
-       $prof->setEmail($data['email']);
-       
-       $hashed = $this->passwordHasher->hashPassword($prof, $data['senha']);
-       $prof->setSenhaHash($hashed);
+        $data = json_decode($request->getContent(), true);
 
-       $this->em->persist($prof);
-       $this->em->flush();
+        $prof = new Professor();
+        $prof->setNome($data['nome']);
+        $prof->setCpf($data['cpf']);
+        $prof->setEmail($data['email']);
 
-       return $this->json(['message' => 'Professor Cadastrado']);
+        $hashed = $this->passwordHasher->hashPassword($prof, $data['senha']);
+        $prof->setSenhaHash($hashed);
+
+        $this->em->persist($prof);
+        $this->em->flush();
+
+        return $this->json(['message' => 'Professor Cadastrado']);
     }
 
     #[Route('/aluno', methods: ['POST'])]
@@ -46,7 +48,7 @@ final class AdminController extends AbstractController
         $aluno = new Aluno();
         $aluno->setName($data['nome']);
         $aluno->setMatricula($data['matricula']);
-        
+
         $this->em->persist($aluno);
         $this->em->flush();
 
@@ -59,7 +61,7 @@ final class AdminController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         $professor = $this->em->getRepository(Professor::class)->find($data['professor_id']);
-        if(!$professor){
+        if (!$professor) {
             return $this->json(['error' => 'Professor não encontrado']);
         }
 
@@ -70,7 +72,7 @@ final class AdminController extends AbstractController
         $turma->setMateria($data['materia']);
         $turma->setProfessor($professor);
 
-        foreach ($alunos as $aluno){
+        foreach ($alunos as $aluno) {
             $turma->addAluno($aluno);
         }
 
@@ -84,6 +86,35 @@ final class AdminController extends AbstractController
     public function listProfessores(): Response
     {
         $professores = $this->em->getRepository(Professor::class)->findAll();
-        return $this->json($professores);
+
+        $data = [];
+
+        foreach ($professores as $professor) {
+            $data[] = [
+                'id' => $professor->getId(),
+                'nome' => $professor->getNome(),
+                'cpf' => $professor->getCpf(),
+                'email' => $professor->getEmail()
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('/admins', methods: ['GET'])]
+    public function listAdmins(): Response
+    {
+        $admins = $this->em->getRepository(Administrador::class)->findAll();
+
+        $data = [];
+
+        foreach ($admins as $admin) {
+            $data[] = [
+                'id' => $admin->getId(),
+                'nome' => $admin->getNome(),
+                'email' => $admin->getEmail()
+            ];
+        }
+
+        return $this->json($data);
     }
 }

@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[Route('/user')]
 final class UserController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em) {}
