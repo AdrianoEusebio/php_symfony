@@ -19,7 +19,7 @@ final class AuthController extends AbstractController
     #[Route('/login',methods:['POST'])]
     public function login(Request $request): JsonResponse
     {
-        $data = json_encode($request->getContent(), true);
+        $data = json_decode($request->getContent(), true);
 
         $email = $data['email'] ?? null;
         $senha = $data['senha'] ?? null;
@@ -31,7 +31,7 @@ final class AuthController extends AbstractController
         $admin = $this->em->getRepository(Administrador::class)
             ->findOneBy(['email' => $email]);
         
-        if(@$admin && password_hash($senha, $admin->getSenhaHash())){
+        if($admin && password_verify($senha, $admin->getPassword())){
             return new JsonResponse([
                 'message' => 'Login Adminstrado bem-sucedido',
                 'role' => 'admin',
@@ -42,7 +42,7 @@ final class AuthController extends AbstractController
         $professor = $this->em->getRepository(Professor::class)
             ->findOneBy(['email' => $email]);
 
-        if ($professor && password_verify($senha, $professor->getSenhaHash())) {
+        if ($professor && password_verify($senha, $professor->getPassword())) {
             return new JsonResponse([
                 'message' => 'Login Professor bem-sucedido',
                 'role' => 'professor',

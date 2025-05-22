@@ -92,9 +92,6 @@ class Professor implements PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @return Collection<int, Turma>
-     */
     public function getTurmas(): Collection
     {
         return $this->turmas;

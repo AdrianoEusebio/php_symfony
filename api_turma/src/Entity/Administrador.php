@@ -4,9 +4,10 @@ namespace App\Entity;
 
 use App\Repository\AdministradorRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: AdministradorRepository::class)]
-class Administrador
+class Administrador implements PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -66,7 +67,7 @@ class Administrador
         return $this;
     }
 
-    public function getSenhaHash(): ?string
+    public function getPassword(): ?string
     {
         return $this->senhaHash;
     }

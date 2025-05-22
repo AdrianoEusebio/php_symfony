@@ -26,6 +26,14 @@ final class AdminController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
+        if ($data === null) {
+            return $this->json(['error' => 'JSON inválido'], 400);
+        }
+
+        if (!isset($data['nome'], $data['cpf'], $data['email'], $data['senha'])) {
+            return $this->json(['error' => 'Dados incompletos'], 400);
+        }
+
         $prof = new Professor();
         $prof->setNome($data['nome']);
         $prof->setCpf($data['cpf']);
@@ -37,13 +45,21 @@ final class AdminController extends AbstractController
         $this->em->persist($prof);
         $this->em->flush();
 
-        return $this->json(['message' => 'Professor Cadastrado']);
+        return $this->json(['message' => 'Professor Cadastrado'], 201);
     }
 
     #[Route('/aluno', methods: ['POST'])]
     public function criarAluno(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
+
+        if ($data === null) {
+            return $this->json(['error' => 'JSON inválido'], 400);
+        }
+
+        if (!isset($data['nome'], $data['matricula'])) {
+            return $this->json(['error' => 'Dados incompletos'], 400);
+        }
 
         $aluno = new Aluno();
         $aluno->setName($data['nome']);
@@ -112,6 +128,46 @@ final class AdminController extends AbstractController
                 'id' => $admin->getId(),
                 'nome' => $admin->getNome(),
                 'email' => $admin->getEmail()
+            ];
+        }
+
+        return $this->json($data);
+    }
+
+    #[Route('/alunos', methods: ['GET'])]
+    public function listAlunos(): Response
+    {
+        $alunos = $this->em->getRepository(Aluno::class)->findAll();
+
+        foreach ($alunos as $aluno) {
+            $data[] = [
+                'id' => $aluno->getId(),
+                'nome' => $aluno->getName(),
+                'matricula' => $aluno->getMatricula()
+            ];
+        }
+
+        return $this->json($data);
+    }
+
+    #[Route('/turmas', methods: ['GET'])]
+    public function listTurma(): Response
+    {
+        $turmas = $this->em->getRepository(Turma::class)->findAll();
+
+        foreach ($turmas as $turma) {
+
+            $alunos = [];
+            foreach ($turma->getAlunos() as $aluno) {
+                $alunos[] = $aluno->getId();
+            }
+
+            $data[] = [
+                'id' => $turma->getId(),
+                'serie' => $turma->getSerie(),
+                'materia' => $turma->getMateria(),
+                'professor_id' => $turma->getProfessor()->getId(),
+                'alunos_id' => $alunos,
             ];
         }
 
