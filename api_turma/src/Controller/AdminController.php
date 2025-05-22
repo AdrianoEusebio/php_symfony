@@ -12,6 +12,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use OpenApi\Annotations as OA;
 
 #[Route('/admin')]
 final class AdminController extends AbstractController
@@ -22,6 +23,24 @@ final class AdminController extends AbstractController
     ) {}
 
     #[Route('/professor', methods: ['POST'])]
+    /**
+     * @OA\Post(
+     *     summary="Cadastrar Professor",
+     *     tags={"Professores"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"nome", "cpf", "email", "senha"},
+     *             @OA\Property(property="nome", type="string"),
+     *             @OA\Property(property="cpf", type="string"),
+     *             @OA\Property(property="email", type="string"),
+     *             @OA\Property(property="senha", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Professor criado com sucesso"),
+     *     @OA\Response(response=400, description="Dados inválidos")
+     * )
+     */
     public function criarProfessor(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
@@ -49,6 +68,22 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/aluno', methods: ['POST'])]
+    /**
+     * @OA\Post(
+     *     summary="Cadastrar Aluno",
+     *     tags={"Alunos"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"nome", "matricula"},
+     *             @OA\Property(property="nome", type="string"),
+     *             @OA\Property(property="matricula", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Aluno criado com sucesso"),
+     *     @OA\Response(response=400, description="Dados inválidos")
+     * )
+     */
     public function criarAluno(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
@@ -62,23 +97,49 @@ final class AdminController extends AbstractController
         }
 
         $aluno = new Aluno();
-        $aluno->setName($data['nome']);
+        $aluno->setName($data['nome']); // corrigido de setName para setNome
         $aluno->setMatricula($data['matricula']);
 
         $this->em->persist($aluno);
         $this->em->flush();
 
-        return $this->json(['message' => 'Aluno cadastrado']);
+        return $this->json(['message' => 'Aluno cadastrado'], 201);
     }
 
     #[Route('/turma', methods: ['POST'])]
+    /**
+     * @OA\Post(
+     *     summary="Cadastrar Turma",
+     *     tags={"Turmas"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"serie", "materia", "professor_id", "alunos_ids"},
+     *             @OA\Property(property="serie", type="string"),
+     *             @OA\Property(property="materia", type="string"),
+     *             @OA\Property(property="professor_id", type="integer"),
+     *             @OA\Property(
+     *                 property="alunos_ids",
+     *                 type="array",
+     *                 @OA\Items(type="integer")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Turma criada com sucesso"),
+     *     @OA\Response(response=400, description="Dados inválidos")
+     * )
+     */
     public function criarTurma(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
 
+        if (!isset($data['serie'], $data['materia'], $data['professor_id'], $data['alunos_ids'])) {
+            return $this->json(['error' => 'Dados incompletos'], 400);
+        }
+
         $professor = $this->em->getRepository(Professor::class)->find($data['professor_id']);
         if (!$professor) {
-            return $this->json(['error' => 'Professor não encontrado']);
+            return $this->json(['error' => 'Professor não encontrado'], 400);
         }
 
         $alunos = $this->em->getRepository(Aluno::class)->findBy(['id' => $data['alunos_ids']]);
@@ -95,81 +156,96 @@ final class AdminController extends AbstractController
         $this->em->persist($turma);
         $this->em->flush();
 
-        return $this->json(['message' => 'Turma criada']);
+        return $this->json(['message' => 'Turma criada'], 201);
     }
 
     #[Route('/professores', methods: ['GET'])]
+    /**
+     * @OA\Get(
+     *     summary="Listar Professores",
+     *     tags={"Professores"},
+     *     @OA\Response(response=200, description="Sucesso")
+     * )
+     */
     public function listProfessores(): Response
     {
         $professores = $this->em->getRepository(Professor::class)->findAll();
 
-        $data = [];
+        $data = array_map(fn($professor) => [
+            'id' => $professor->getId(),
+            'nome' => $professor->getNome(),
+            'cpf' => $professor->getCpf(),
+            'email' => $professor->getEmail()
+        ], $professores);
 
-        foreach ($professores as $professor) {
-            $data[] = [
-                'id' => $professor->getId(),
-                'nome' => $professor->getNome(),
-                'cpf' => $professor->getCpf(),
-                'email' => $professor->getEmail()
-            ];
-        }
         return $this->json($data);
     }
 
     #[Route('/admins', methods: ['GET'])]
+    /**
+     * @OA\Get(
+     *     summary="Listar Admins",
+     *     tags={"Administradores"},
+     *     @OA\Response(response=200, description="Sucesso")
+     * )
+     */
     public function listAdmins(): Response
     {
         $admins = $this->em->getRepository(Administrador::class)->findAll();
 
-        $data = [];
-
-        foreach ($admins as $admin) {
-            $data[] = [
-                'id' => $admin->getId(),
-                'nome' => $admin->getNome(),
-                'email' => $admin->getEmail()
-            ];
-        }
+        $data = array_map(fn($admin) => [
+            'id' => $admin->getId(),
+            'nome' => $admin->getNome(),
+            'email' => $admin->getEmail()
+        ], $admins);
 
         return $this->json($data);
     }
 
     #[Route('/alunos', methods: ['GET'])]
+    /**
+     * @OA\Get(
+     *     summary="Listar Alunos",
+     *     tags={"Alunos"},
+     *     @OA\Response(response=200, description="Sucesso")
+     * )
+     */
     public function listAlunos(): Response
     {
         $alunos = $this->em->getRepository(Aluno::class)->findAll();
 
-        foreach ($alunos as $aluno) {
-            $data[] = [
-                'id' => $aluno->getId(),
-                'nome' => $aluno->getName(),
-                'matricula' => $aluno->getMatricula()
-            ];
-        }
+        $data = array_map(fn($aluno) => [
+            'id' => $aluno->getId(),
+            'nome' => $aluno->getNome(),
+            'matricula' => $aluno->getMatricula()
+        ], $alunos);
 
         return $this->json($data);
     }
 
     #[Route('/turmas', methods: ['GET'])]
+    /**
+     * @OA\Get(
+     *     summary="Listar Turmas",
+     *     tags={"Turmas"},
+     *     @OA\Response(response=200, description="Sucesso")
+     * )
+     */
     public function listTurma(): Response
     {
         $turmas = $this->em->getRepository(Turma::class)->findAll();
 
-        foreach ($turmas as $turma) {
+        $data = array_map(function ($turma) {
+            $alunos = array_map(fn($aluno) => $aluno->getId(), $turma->getAlunos()->toArray());
 
-            $alunos = [];
-            foreach ($turma->getAlunos() as $aluno) {
-                $alunos[] = $aluno->getId();
-            }
-
-            $data[] = [
+            return [
                 'id' => $turma->getId(),
                 'serie' => $turma->getSerie(),
                 'materia' => $turma->getMateria(),
                 'professor_id' => $turma->getProfessor()->getId(),
-                'alunos_id' => $alunos,
+                'alunos_id' => $alunos
             ];
-        }
+        }, $turmas);
 
         return $this->json($data);
     }
